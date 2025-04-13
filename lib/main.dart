@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:tuktuk/pages/AdminPage.dart';
 import 'package:tuktuk/pages/HomePage.dart';
 import 'package:tuktuk/pages/LoginPage.dart';
 
@@ -154,6 +155,8 @@ import 'package:tuktuk/pages/LoginPage.dart';
 import 'package:tuktuk/pages/MapSelectionPage.dart';
 import 'package:tuktuk/pages/RideRequestPage.dart';
 import 'package:tuktuk/pages/SignUpPage.dart';
+import 'package:tuktuk/pages/ViewMatches.dart';
+import 'package:tuktuk/pages/ViewMatchesPage.dart';
 import 'package:tuktuk/pages/ViewRequestsPage.dart';
 
 import 'firebase_options.dart';
@@ -207,8 +210,10 @@ class MyApp extends StatelessWidget {
         '/HomePage': (context) => const HomePage(),
         '/LoginPage': (context) => const LoginPage(),
         '/SignUpPage': (context) => const SignUpPage(),
+        '/AdminPage': (context) => const AdminPage(),
         '/RideRequestPage': (context) => const RideRequestPage(),
         '/ViewRequestsPage': (context) => const ViewRequestsPage(),
+        '/ViewMatchesPage': (context) => const ViewMatchesPage(),
         '/MapSelectionPage': (context) => const MapSelectionPage(),
       },
     );
