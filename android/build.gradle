@@ -1,3 +1,24 @@
+buildscript {
+    ext.flutter = [
+            compileSdkVersion: 34,   // or the version you want (>=34 for newer APIs)
+            targetSdkVersion : 34,
+            minSdkVersion    : 23,
+            versionCode      : 1,
+            versionName      : "1.0",
+            ndkVersion       : "21.4.7075529" // adjust if needed
+    ]
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.2.1' // or your current version
+        classpath 'com.google.gms:google-services:4.3.15'
+    }
+}
+
+// (Optionally, you might have additional settings after this block.)
+
 allprojects {
     repositories {
         google()
@@ -16,3 +37,4 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+

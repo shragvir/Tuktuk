@@ -151,6 +151,7 @@ import 'package:flutter/material.dart';
 import 'package:tuktuk/pages/FlashPage.dart';
 import 'package:tuktuk/pages/HomePage.dart';
 import 'package:tuktuk/pages/LoginPage.dart';
+import 'package:tuktuk/pages/MapSelectionPage.dart';
 import 'package:tuktuk/pages/RideRequestPage.dart';
 import 'package:tuktuk/pages/SignUpPage.dart';
 import 'package:tuktuk/pages/ViewRequestsPage.dart';
@@ -208,6 +209,7 @@ class MyApp extends StatelessWidget {
         '/SignUpPage': (context) => const SignUpPage(),
         '/RideRequestPage': (context) => const RideRequestPage(),
         '/ViewRequestsPage': (context) => const ViewRequestsPage(),
+        '/MapSelectionPage': (context) => const MapSelectionPage(),
       },
     );
   }
