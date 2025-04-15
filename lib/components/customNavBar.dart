@@ -69,7 +69,7 @@ class CustomNavBar extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.add_circle, color: Colors.yellow),
+              leading: const Icon(Icons.add_circle, color: Colors.yellowAccent),
               title: const Text(
                 "Request a Ride",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -79,7 +79,7 @@ class CustomNavBar extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.yellow),
+              leading: const Icon(Icons.logout, color: Colors.yellowAccent),
               title: const Text(
                 "Sign Out",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -89,7 +89,7 @@ class CustomNavBar extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.view_list_outlined, color: Colors.yellow),
+              leading: const Icon(Icons.view_list_outlined, color: Colors.yellowAccent),
               title: const Text(
                 "View Requests",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -99,7 +99,7 @@ class CustomNavBar extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.view_list_outlined, color: Colors.yellow),
+              leading: const Icon(Icons.remove_red_eye_outlined, color: Colors.yellowAccent),
               title: const Text(
                 "View Matches",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -109,13 +109,23 @@ class CustomNavBar extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.view_list_outlined, color: Colors.yellow),
+              leading: const Icon(Icons.admin_panel_settings, color: Colors.yellowAccent),
               title: const Text(
                 "Admin Dashboard",
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               onTap: () {
-                Navigator.pushNamed(context, '/AdminPage'); // Adjust route
+                Navigator.pushNamed(context, '/AdminPage');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.view_list_outlined, color: Colors.yellowAccent),
+              title: const Text(
+                "Profile",
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/ProfilePage'); // Adjust route
               },
             ),
           ],

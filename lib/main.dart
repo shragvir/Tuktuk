@@ -153,6 +153,7 @@ import 'package:tuktuk/pages/FlashPage.dart';
 import 'package:tuktuk/pages/HomePage.dart';
 import 'package:tuktuk/pages/LoginPage.dart';
 import 'package:tuktuk/pages/MapSelectionPage.dart';
+import 'package:tuktuk/pages/ProfilePage.dart';
 import 'package:tuktuk/pages/RideRequestPage.dart';
 import 'package:tuktuk/pages/SignUpPage.dart';
 import 'package:tuktuk/pages/ViewMatches.dart';
@@ -211,6 +212,7 @@ class MyApp extends StatelessWidget {
         '/LoginPage': (context) => const LoginPage(),
         '/SignUpPage': (context) => const SignUpPage(),
         '/AdminPage': (context) => const AdminPage(),
+        '/ProfilePage': (context) => const ProfilePage(),
         '/RideRequestPage': (context) => const RideRequestPage(),
         '/ViewRequestsPage': (context) => const ViewRequestsPage(),
         '/ViewMatchesPage': (context) => const ViewMatchesPage(),

@@ -23,18 +23,12 @@ class ViewRequestsPageState extends State<ViewRequestsPage> {
           children: [
             Expanded(
                 child: StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection('RideRequests')
-                  .where('userId',
-                      isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                stream: FirebaseFirestore.instance.collection('RideRequests').where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid).orderBy('createdAt', descending: true).snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 // Add debug print
                 print("Connection state: ${snapshot.connectionState}");
                 print("Has data: ${snapshot.hasData}");
-                print(
-                    "Data empty: ${snapshot.hasData ? snapshot.data!.docs.isEmpty : 'N/A'}");
+                print("Data empty: ${snapshot.hasData ? snapshot.data!.docs.isEmpty : 'N/A'}");
 
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -42,10 +36,7 @@ class ViewRequestsPageState extends State<ViewRequestsPage> {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Text(
                     "No ride requests found",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   );
                 }
                 // Add debug print
@@ -57,9 +48,9 @@ class ViewRequestsPageState extends State<ViewRequestsPage> {
                   itemBuilder: (context, index) {
                     var request = snapshot.data!.docs[index];
                     return Card(
-                      color: Colors.yellow[700],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                      color: request['status'] == 'Pending' ? Color(0xFFFFF44F)
+                          : Colors.lightGreenAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
@@ -73,16 +64,11 @@ class ViewRequestsPageState extends State<ViewRequestsPage> {
                                   Text(
                                     // "${request['pickupLocation']} → ${request['dropoffLocation']}",
                                     "${request['pickupLocation'].split(',')[0]} → ${request['dropoffLocation'].split(',')[0]}",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                        fontSize: 16),
-                                  ),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 16),),
                                   const SizedBox(height: 4),
                                   Text(
                                     "Time: ${request['preferredTime']}\nPassengers: ${request['numberOfPassengers']}",
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 14),
+                                    style: const TextStyle(color: Colors.black, fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -91,17 +77,12 @@ class ViewRequestsPageState extends State<ViewRequestsPage> {
                               padding: const EdgeInsets.symmetric(
                                   vertical: 6, horizontal: 12),
                               decoration: BoxDecoration(
-                                color: request['status'] == 'Pending'
-                                    ? Colors.orange
-                                    : Colors.green,
+                                color: request['status'] == 'Pending' ? Colors.orange : Colors.green,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 request['status'],
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],

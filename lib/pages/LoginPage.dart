@@ -203,7 +203,7 @@ class LoginPageState extends State<LoginPage>{
                     await loginUserWithEmailAndPassword();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700], // Rich Green Button
+                    backgroundColor: Colors.lightGreenAccent, // Rich Green Button
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 40),
                     textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -228,7 +228,7 @@ class LoginPageState extends State<LoginPage>{
                           text: 'Sign Up',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.yellow[700], // Bright Yellow for Highlight
+                            color: Colors.yellowAccent, // Bright Yellow for Highlight
                           ),
                         ),
                       ],
@@ -245,23 +245,52 @@ class LoginPageState extends State<LoginPage>{
 
   // Custom Input Field Builder
   Widget buildTextField(String label, TextEditingController controller, {bool isPassword = false}) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isPassword,
-      keyboardType: isPassword ? TextInputType.text : TextInputType.emailAddress,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-        filled: true,
-        fillColor: Colors.yellow[700], // Bright Yellow Fields
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+      child: Focus(
+        child: Builder(
+          builder: (context) {
+            final hasFocus = Focus.of(context).hasFocus;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: hasFocus ? 80 : 75,
+              child: TextFormField(
+                controller: controller,
+                obscureText: isPassword,
+                keyboardType: isPassword ? TextInputType.text : TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: label,
+                  hintStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: Colors.grey.shade900,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Colors.yellowAccent,
+                      width: 3.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Colors.lightGreenAccent,
+                      width: 3.5,
+                    ),
+                  ),
+                ),
+                validator: (value) {
+                  if (value!.isEmpty) return 'Enter $label';
+                  if (isPassword && value.length < 6) return 'Password must be at least 6 characters';
+                  return null;
+                },
+              ),
+            );
+          },
+        ),
       ),
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-      validator: (value) {
-        if (value!.isEmpty) return 'Enter $label';
-        if (isPassword && value.length < 6) return 'Password must be at least 6 characters';
-        return null;
-      },
     );
   }
+
 }

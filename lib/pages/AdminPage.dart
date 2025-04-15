@@ -1,11 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:ui';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
 
-  // Show the popup with scale and fade effect
+  // Show the popup with scale and fade effect and blurred background
   void showStatDialog(BuildContext context, String label, int value, IconData icon) {
     showGeneralDialog(
       context: context,
@@ -15,7 +15,7 @@ class AdminPage extends StatelessWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
         return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // <- BLUR HERE
+          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), // blur effect
           child: Center(
             child: Material(
               color: Colors.transparent,
@@ -38,12 +38,20 @@ class AdminPage extends StatelessWidget {
                     Text(
                       label,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       "$value",
-                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.black),
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -64,8 +72,7 @@ class AdminPage extends StatelessWidget {
     );
   }
 
-
-  // Build tile (count is not shown here)
+  // Build tile for each stat
   Widget buildStatCardTile(BuildContext context, String label, IconData icon, Future<int> futureCount) {
     return FutureBuilder<int>(
       future: futureCount,
@@ -76,16 +83,16 @@ class AdminPage extends StatelessWidget {
             showStatDialog(context, label, count, icon);
           },
           child: Card(
+            elevation: 5,  // Adding elevation for a shadow effect
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 5,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
                   colors: [Color(0xFFEFD339), Color(0xFF56D239)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.all(Radius.circular(16)),
+                borderRadius: BorderRadius.circular(16), // Rounded corners for the card
               ),
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -111,8 +118,7 @@ class AdminPage extends StatelessWidget {
     );
   }
 
-
-  // Firestore query to fetch count
+  // Fetch count from Firestore
   Future<int> fetchCount(CollectionReference collection, {String? statusFilter}) async {
     Query query = collection;
     if (statusFilter != null) {
@@ -143,35 +149,68 @@ class AdminPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(14),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: 0.9,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            buildStatCardTile(
-              context,
-              "Total Registered Users",
-              Icons.people,
-              fetchCount(firestore.collection('UserRegistration')),
+            // Welcome tile with same height as other tiles
+            Container(
+              height: 180, // Set the height to match the other tiles
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFEFD339), Color(0xFF56D239)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(0),
+              ),
+              child: const Center(
+                child: Text(
+                  "Welcome, Admin!",
+                  style: TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
             ),
-            buildStatCardTile(
-              context,
-              "Pending Ride Requests",
-              Icons.pending,
-              fetchCount(firestore.collection('RideRequests'), statusFilter: 'Pending'),
-            ),
-            buildStatCardTile(
-              context,
-              "Accepted Ride Requests",
-              Icons.check_circle,
-              fetchCount(firestore.collection('RideRequests'), statusFilter: 'Accepted'),
-            ),
-            buildStatCardTile(
-              context,
-              "Completed Ride Requests",
-              Icons.done_all,
-              fetchCount(firestore.collection('RideRequests'), statusFilter: 'Completed'),
+
+            // Grid of stat tiles
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.9,
+                children: [
+                  buildStatCardTile(
+                    context,
+                    "Total Registered Users",
+                    Icons.people,
+                    fetchCount(firestore.collection('UserRegistration')),
+                  ),
+                  buildStatCardTile(
+                    context,
+                    "Pending Ride Requests",
+                    Icons.pending,
+                    fetchCount(firestore.collection('RideRequests'), statusFilter: 'Pending'),
+                  ),
+                  buildStatCardTile(
+                    context,
+                    "Accepted Ride Requests",
+                    Icons.handshake,
+                    fetchCount(firestore.collection('RideRequests'), statusFilter: 'Accepted'),
+                  ),
+                  buildStatCardTile(
+                    context,
+                    "Completed Ride Requests",
+                    Icons.done_all_sharp,
+                    fetchCount(firestore.collection('RideRequests'), statusFilter: 'Completed'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
