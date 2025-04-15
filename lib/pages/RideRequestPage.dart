@@ -279,10 +279,13 @@ class RideRequestState extends State<RideRequestPage> {
 
         // Create a new RideMatch document that includes both requests.
         final newMatchRef = firestore.collection('RideMatches').doc();
+        final generateOtp = (1000+Random().nextInt(9000)).toString();
         await newMatchRef.set({
           'matchId': newMatchRef.id,
           'userIds': [userId, otherUserId],
           'rideRequestIds': [rideRequestId, doc.id],
+          'otp':generateOtp,
+          'isOtpVerified':false,
           'pickupLocation': pickupLocation,
           'dropoffLocation': dropoffLocation,
           'pickupCoordinates': GeoPoint(pickupCoordinates.latitude, pickupCoordinates.longitude),
