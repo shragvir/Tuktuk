@@ -154,6 +154,7 @@ import 'package:tuktuk/pages/HomePage.dart';
 import 'package:tuktuk/pages/LoginPage.dart';
 import 'package:tuktuk/pages/MapSelectionPage.dart';
 import 'package:tuktuk/pages/ProfilePage.dart';
+import 'package:tuktuk/pages/RideDetailsPage.dart';
 import 'package:tuktuk/pages/RideRequestPage.dart';
 import 'package:tuktuk/pages/SignUpPage.dart';
 import 'package:tuktuk/pages/ViewMatches.dart';

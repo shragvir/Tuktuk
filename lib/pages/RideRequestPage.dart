@@ -70,8 +70,6 @@ class RideRequestState extends State<RideRequestPage> {
     return distanceCalculator.as(ll.LengthUnit.Kilometer, start, end);
   }
 
-
-
 /*
   Future<void> checkForMatchingRides({
     required String userId,
@@ -196,7 +194,7 @@ class RideRequestState extends State<RideRequestPage> {
   }
 */
 
-  Future<void> checkForMatchingRides({
+/*  Future<void> checkForMatchingRides({
     required String userId,
     required String rideRequestId,
     required LatLng pickupCoordinates,
@@ -389,9 +387,276 @@ class RideRequestState extends State<RideRequestPage> {
     } catch (e) {
       print('Error in matching logic: $e');
     }
+  }*/
+
+  Future<void> checkForMatchingRides({
+    required String userId,
+    required String rideRequestId,
+    required LatLng pickupCoordinates,
+    required LatLng dropoffCoordinates,
+    required String time,
+    required String genderPref, // current user's preference for others
+    required String userGender, // current user's own gender
+    required int maxPassengers,
+    required String pickupLocation,
+    required String dropoffLocation,
+  }) async
+  {
+    final firestore = FirebaseFirestore.instance;
+
+    try {
+      // Look for pending ride requests whose user's actual gender matches the current user's gender preference,
+      // except when current user's preference is "Any".
+      Query query = firestore
+          .collection('RideRequests')
+          .where('status', isEqualTo: 'pending');
+      if (genderPref.toLowerCase() != 'any') {
+        // Instead of matching on the other user's genderPreference,
+        // we match the other user's actual gender.
+        query = query.where('gender', isEqualTo: genderPref);
+      }
+      final querySnapshot = await query.get();
+
+      bool foundMatchInRequests = false;
+
+      for (var doc in querySnapshot.docs) {
+        // Ensure we're not matching to our own ride request.
+        if (doc.id == rideRequestId) continue;
+
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data == null) continue; // Skip this document if data is null.
+
+        // Also check that the other ride's user is not the same as the current user.
+        if (data['userId'] == userId) continue;
+
+        final GeoPoint? otherPickupGeo = data['pickupCoordinates'];
+        final GeoPoint? otherDropoffGeo = data['dropoffCoordinates'];
+        final String? otherTime = data['preferredTime'];
+        final String? otherUserId = data['userId'];
+        final String? otherGender =
+            data['gender']; // other user's actual gender
+        final String? otherGenderPref =
+            data['genderPreference']; // other user's preference
+        final String? otherPickupLocation = data['pickupLocation'];
+        final String? otherDropoffLocation = data['dropoffLocation'];
+
+        if (otherPickupGeo == null ||
+            otherDropoffGeo == null ||
+            otherTime == null ||
+            otherUserId == null ||
+            otherGender == null ||
+            otherGenderPref == null ||
+            otherPickupLocation == null ||
+            otherDropoffLocation == null) {
+          continue;
+        }
+
+        // If the other user's gender preference is not "Any", then check that it matches current user's gender.
+        if (otherGenderPref.toLowerCase() != 'any' &&
+            otherGenderPref.toLowerCase() != userGender.toLowerCase()) {
+          continue;
+        }
+
+        final ll.LatLng otherPickup =
+            ll.LatLng(otherPickupGeo.latitude, otherPickupGeo.longitude);
+        final ll.LatLng otherDropoff =
+            ll.LatLng(otherDropoffGeo.latitude, otherDropoffGeo.longitude);
+        final ll.LatLng userPickup =
+            ll.LatLng(pickupCoordinates.latitude, pickupCoordinates.longitude);
+        final ll.LatLng userDropoff = ll.LatLng(
+            dropoffCoordinates.latitude, dropoffCoordinates.longitude);
+
+        final pickupDistance = calculateDistanceInKm(userPickup, otherPickup);
+        final dropoffDistance =
+            calculateDistanceInKm(userDropoff, otherDropoff);
+
+        if (pickupDistance > 2 || dropoffDistance > 2) continue;
+        if (!isTimeWithinRange(time, otherTime)) continue;
+
+        // Calculate overall match gender preference.
+        String matchGenderPreference;
+        if (genderPref.toLowerCase() == otherGenderPref.toLowerCase() &&
+            genderPref.toLowerCase() != 'any') {
+          matchGenderPreference = genderPref;
+        } else {
+          matchGenderPreference = 'none';
+        }
+
+        // Create a new RideMatch document that includes both requests.
+        final newMatchRef = firestore.collection('RideMatches').doc();
+        final generateOtp = (1000 + Random().nextInt(9000)).toString();
+
+        // Store arrays for pickup/dropoff locations and coordinates
+        await newMatchRef.set({
+          'matchId': newMatchRef.id,
+          'userIds': [userId, otherUserId],
+          'rideRequestIds': [rideRequestId, doc.id],
+          'otp': generateOtp,
+          'isOtpVerified': false,
+          'pickupLocations': [pickupLocation, otherPickupLocation],
+          'dropoffLocations': [dropoffLocation, otherDropoffLocation],
+          'pickupCoordinates': [
+            GeoPoint(pickupCoordinates.latitude, pickupCoordinates.longitude),
+            GeoPoint(otherPickupGeo.latitude, otherPickupGeo.longitude)
+          ],
+          'dropoffCoordinates': [
+            GeoPoint(dropoffCoordinates.latitude, dropoffCoordinates.longitude),
+            GeoPoint(otherDropoffGeo.latitude, otherDropoffGeo.longitude)
+          ],
+          'requestStatuses': [
+            'matched',
+            'matched'
+          ], // Initial status for both users
+          'genderPreference': matchGenderPreference,
+          'status': (2 == maxPassengers) ? 'full' : 'waiting',
+          'maxPassengerCount': maxPassengers,
+          'currentPassengerCount': 2,
+          'createdAt': Timestamp.now(),
+          'passengerGenders': [userGender, otherGender],
+          'passengerGenderPreferences': [genderPref, otherGenderPref],
+        });
+
+        // Update both ride requests' statuses to "Matched" and store matchId
+        await firestore.collection('RideRequests').doc(rideRequestId).update({
+          'status': 'matched',
+          'matchId': newMatchRef.id,
+        });
+        await firestore.collection('RideRequests').doc(doc.id).update({
+          'status': 'matched',
+          'matchId': newMatchRef.id,
+        });
+
+        foundMatchInRequests = true;
+        break;
+      }
+
+      if (!foundMatchInRequests) {
+        // Check existing RideMatches if no suitable pending RideRequest match was found.
+        final matchQuery = await firestore
+            .collection('RideMatches')
+            .where('status', isEqualTo: 'waiting')
+            .get();
+
+        for (var match in matchQuery.docs) {
+          final matchData = match.data();
+
+          // Skip matches that don't have compatible gender preferences
+          if (genderPref.toLowerCase() != 'any') {
+            // Check if user's gender matches existing passengers' preferences
+            final List<dynamic> passengerGenderPrefs =
+                matchData['passengerGenderPreferences'] ?? [];
+            bool genderCompatible = true;
+
+            for (var pref in passengerGenderPrefs) {
+              if (pref.toLowerCase() != 'any' &&
+                  pref.toLowerCase() != userGender.toLowerCase()) {
+                genderCompatible = false;
+                break;
+              }
+            }
+
+            if (!genderCompatible) continue;
+          }
+
+          final List<dynamic> existingPickupCoordinates =
+              matchData['pickupCoordinates'] ?? [];
+          final List<dynamic> existingDropoffCoordinates =
+              matchData['dropoffCoordinates'] ?? [];
+
+          // Skip if no coordinates
+          if (existingPickupCoordinates.isEmpty ||
+              existingDropoffCoordinates.isEmpty) continue;
+
+          // Check if user's pickup and dropoff locations are close enough to any existing locations
+          final ll.LatLng userPickup = ll.LatLng(
+              pickupCoordinates.latitude, pickupCoordinates.longitude);
+          final ll.LatLng userDropoff = ll.LatLng(
+              dropoffCoordinates.latitude, dropoffCoordinates.longitude);
+
+          bool pickupMatch = false;
+          bool dropoffMatch = false;
+
+          // Check proximity to any existing pickup points
+          for (var pickupGeo in existingPickupCoordinates) {
+            if (pickupGeo is GeoPoint) {
+              final ll.LatLng existingPickup =
+                  ll.LatLng(pickupGeo.latitude, pickupGeo.longitude);
+              final distance =
+                  calculateDistanceInKm(userPickup, existingPickup);
+
+              if (distance <= 2) {
+                pickupMatch = true;
+                break;
+              }
+            }
+          }
+
+          // Continue to next match if no pickup match
+          if (!pickupMatch) continue;
+
+          // Check proximity to any existing dropoff points
+          for (var dropoffGeo in existingDropoffCoordinates) {
+            if (dropoffGeo is GeoPoint) {
+              final ll.LatLng existingDropoff =
+                  ll.LatLng(dropoffGeo.latitude, dropoffGeo.longitude);
+              final distance =
+                  calculateDistanceInKm(userDropoff, existingDropoff);
+
+              if (distance <= 2) {
+                dropoffMatch = true;
+                break;
+              }
+            }
+          }
+
+          // Continue to next match if no dropoff match
+          if (!dropoffMatch) continue;
+
+          final List<dynamic> matchedUserIds = matchData['userIds'] ?? [];
+          final int currentPassengerCount =
+              matchData['currentPassengerCount'] ?? 0;
+          final int matchMaxPassengers = matchData['maxPassengerCount'] ?? 0;
+
+          // If match is already full, skip.
+          if (currentPassengerCount >= matchMaxPassengers) continue;
+
+          final newCount = currentPassengerCount + 1;
+          final newStatus =
+              (newCount == matchMaxPassengers) ? 'full' : 'waiting';
+
+          // Update the RideMatch with the new passenger.
+          await firestore.collection('RideMatches').doc(match.id).update({
+            'userIds': FieldValue.arrayUnion([userId]),
+            'rideRequestIds': FieldValue.arrayUnion([rideRequestId]),
+            'pickupLocations': FieldValue.arrayUnion([pickupLocation]),
+            'dropoffLocations': FieldValue.arrayUnion([dropoffLocation]),
+            'pickupCoordinates': FieldValue.arrayUnion([
+              GeoPoint(pickupCoordinates.latitude, pickupCoordinates.longitude)
+            ]),
+            'dropoffCoordinates': FieldValue.arrayUnion([
+              GeoPoint(
+                  dropoffCoordinates.latitude, dropoffCoordinates.longitude)
+            ]),
+            'requestStatuses': FieldValue.arrayUnion(['Matched']),
+            'currentPassengerCount': newCount,
+            'status': newStatus,
+            'passengerGenders': FieldValue.arrayUnion([userGender]),
+            'passengerGenderPreferences': FieldValue.arrayUnion([genderPref]),
+          });
+
+          // Update the ride request status for this new passenger.
+          await firestore.collection('RideRequests').doc(rideRequestId).update({
+            'status': 'matched',
+            'matchId': match.id,
+          });
+
+          break;
+        }
+      }
+    } catch (e) {
+      print('Error in matching logic: $e');
+    }
   }
-
-
 
 /*  Future<void> submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -488,7 +753,7 @@ class RideRequestState extends State<RideRequestPage> {
         }
 
         final rideDoc =
-        FirebaseFirestore.instance.collection('RideRequests').doc();
+            FirebaseFirestore.instance.collection('RideRequests').doc();
         final rideId = rideDoc.id;
 
         await rideDoc.set({
@@ -540,7 +805,6 @@ class RideRequestState extends State<RideRequestPage> {
       }
     }
   }
-
 
   Future<String> _getAddressFromLatLng(LatLng position) async {
     try {
@@ -646,7 +910,10 @@ class RideRequestState extends State<RideRequestPage> {
                         ),
                         Text(
                           count.toString(),
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     );
@@ -661,7 +928,8 @@ class RideRequestState extends State<RideRequestPage> {
                     backgroundColor: Colors.lightGreenAccent, // Green button
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 15),
-                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   child: const Text('Submit Ride Request'),
                 ),
@@ -674,8 +942,7 @@ class RideRequestState extends State<RideRequestPage> {
   }
 
   Future<void> _navigateToMapSelection(
-      BuildContext context, bool isPickup) async
-  {
+      BuildContext context, bool isPickup) async {
     final selectedLocation = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -730,8 +997,10 @@ class RideRequestState extends State<RideRequestPage> {
                       hintStyle: const TextStyle(color: Colors.white70),
                       filled: true,
                       fillColor: Colors.grey.shade900,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
-                      suffixIcon: const Icon(Icons.map, color: Colors.yellowAccent),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 22, horizontal: 18),
+                      suffixIcon:
+                          const Icon(Icons.map, color: Colors.yellowAccent),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
@@ -748,7 +1017,7 @@ class RideRequestState extends State<RideRequestPage> {
                       ),
                     ),
                     validator: (value) =>
-                    value!.isEmpty ? 'Please select $label' : null,
+                        value!.isEmpty ? 'Please select $label' : null,
                   ),
                 ),
               ),
@@ -760,9 +1029,11 @@ class RideRequestState extends State<RideRequestPage> {
   }
 
   // Custom TextField Builder
-  Widget buildTextField(String label, TextEditingController controller, {bool isNumber = false}) {
+  Widget buildTextField(String label, TextEditingController controller,
+      {bool isNumber = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8), // wider margin
+      padding: const EdgeInsets.symmetric(
+          vertical: 11, horizontal: 8), // wider margin
       child: Focus(
         child: Builder(
           builder: (context) {
@@ -772,14 +1043,16 @@ class RideRequestState extends State<RideRequestPage> {
               height: hasFocus ? 80 : 75, // increase on focus
               child: TextFormField(
                 controller: controller,
-                keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+                keyboardType:
+                    isNumber ? TextInputType.number : TextInputType.text,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: label,
                   hintStyle: const TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Colors.grey.shade900,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
@@ -797,7 +1070,8 @@ class RideRequestState extends State<RideRequestPage> {
                 ),
                 validator: (value) {
                   if (value!.isEmpty) return 'Enter $label';
-                  if (isNumber && int.tryParse(value) == null) return 'Enter a valid number';
+                  if (isNumber && int.tryParse(value) == null)
+                    return 'Enter a valid number';
                   return null;
                 },
               ),
@@ -822,7 +1096,11 @@ class RideRequestState extends State<RideRequestPage> {
             });
           },
         ),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(value,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -846,8 +1124,8 @@ class RideRequestState extends State<RideRequestPage> {
                     initialTime: TimeOfDay.now(),
                     builder: (context, child) {
                       return MediaQuery(
-                        data: MediaQuery.of(context).copyWith(
-                            alwaysUse24HourFormat: true),
+                        data: MediaQuery.of(context)
+                            .copyWith(alwaysUse24HourFormat: true),
                         child: child!,
                       );
                     },
@@ -859,14 +1137,16 @@ class RideRequestState extends State<RideRequestPage> {
                   }
                 },
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   hintText: 'Preferred Time',
                   hintStyle: const TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Colors.grey.shade900,
-                  contentPadding: const EdgeInsets.symmetric(
-                      vertical: 22, horizontal: 18),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
                   suffixIcon: const Icon(
                     Icons.access_time,
                     color: Colors.yellowAccent,
@@ -888,7 +1168,7 @@ class RideRequestState extends State<RideRequestPage> {
                   ),
                 ),
                 validator: (value) =>
-                value!.isEmpty ? 'Please select Preferred Time' : null,
+                    value!.isEmpty ? 'Please select Preferred Time' : null,
               ),
             );
           },
@@ -896,5 +1176,4 @@ class RideRequestState extends State<RideRequestPage> {
       ),
     );
   }
-
 }
