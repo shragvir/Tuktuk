@@ -19,7 +19,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userData;
   final user = FirebaseAuth.instance.currentUser;
   bool isEditing = false;
-  File? _image;
 
   final nameController = TextEditingController();
   final mobileController = TextEditingController();
@@ -101,63 +100,62 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: Colors.black,
       appBar: const CustomAppBar(title: "My Profile"),
       drawer: const CustomNavBar(),
-      body: userData == null
-          ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: uploadProfileImage,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundImage: userData!['profilePicUrl'] != null
-                    ? NetworkImage(userData!['profilePicUrl'])
-                    : null,
-                backgroundColor: Colors.yellow,
-                child: userData!['profilePicUrl'] == null
-                    ? const Icon(Icons.person, size: 60, color: Colors.black)
-                    : null,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.black, Color(0xFF222222)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: userData == null
+            ? const Center(child: CircularProgressIndicator(color: Colors.yellow))
+            : SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: uploadProfileImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundImage: userData!['profilePicUrl'] != null
+                      ? NetworkImage(userData!['profilePicUrl'])
+                      : null,
+                  backgroundColor: Colors.yellow,
+                  child: userData!['profilePicUrl'] == null
+                      ? const Icon(Icons.person, size: 60, color: Colors.black)
+                      : null,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            buildEditableField("Name", nameController),
-            buildEditableField("Mobile No", mobileController),
-            profileInfo("Email", userData!['email']),
-            profileInfo("Gender", userData!['gender']),
-            profileInfo("Date of Birth", userData!['DOB']),
-            const SizedBox(height: 20),
-            isEditing
-                ? ElevatedButton(
-              onPressed: saveProfileChanges,
-              child: const Text("Save"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+              const SizedBox(height: 20),
+              buildEditableField("Name", nameController),
+              buildEditableField("Mobile No", mobileController),
+              profileInfo("Email", userData!['email']),
+              profileInfo("Gender", userData!['gender']),
+              profileInfo("Date of Birth", userData!['DOB']),
+              const SizedBox(height: 20),
+              isEditing
+                  ? ElevatedButton(
+                onPressed: saveProfileChanges,
+                child: const Text("Save"),
+                style: elevatedButtonStyle(Colors.lightGreenAccent, Colors.black),
+              )
+                  : ElevatedButton(
+                onPressed: () => setState(() => isEditing = true),
+                child: const Text("Edit"),
+                style: elevatedButtonStyle(Colors.yellowAccent, Colors.black),
               ),
-            )
-                : ElevatedButton(
-              onPressed: () => setState(() => isEditing = true),
-              child: const Text("Edit"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.yellow[700],
-                foregroundColor: Colors.black,
+              const SizedBox(height: 20),
+              // buildMatchedRidesSection(),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                onPressed: logout,
+                icon: const Icon(Icons.logout),
+                label: const Text("Logout"),
+                style: elevatedButtonStyle(Colors.redAccent, Colors.white),
               ),
-            ),
-            const SizedBox(height: 20),
-            buildMatchedRidesSection(),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: logout,
-              icon: const Icon(Icons.logout),
-              label: const Text("Logout"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -165,17 +163,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget buildEditableField(String label, TextEditingController controller) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       child: TextField(
         controller: controller,
         enabled: isEditing,
         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.yellow),
+          hintText: label,
+          hintStyle: const TextStyle(color: Colors.white70),
           filled: true,
-          fillColor: Colors.grey[900],
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          fillColor: Colors.grey.shade900,
+          contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.yellowAccent, width: 2.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.lightGreenAccent, width: 3),
+          ),
         ),
       ),
     );
@@ -184,16 +190,17 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget profileInfo(String label, String? value) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.yellow[700],
+        color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.yellowAccent, width: 2.5),
       ),
       child: Text(
         "$label: ${value ?? 'N/A'}",
         style: const TextStyle(
-          color: Colors.black,
+          color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
@@ -232,6 +239,7 @@ class _ProfilePageState extends State<ProfilePage> {
               final data = doc.data() as Map<String, dynamic>;
               return Card(
                 color: Colors.grey[900],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: ListTile(
                   title: Text(
                     "${data['pickupLocation'].split(',')[0]} → ${data['dropoffLocation'].split(',')[0]}",
@@ -247,6 +255,16 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         );
       },
+    );
+  }
+
+  ButtonStyle elevatedButtonStyle(Color bgColor, Color fgColor) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: bgColor,
+      foregroundColor: fgColor,
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }
